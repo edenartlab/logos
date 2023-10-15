@@ -1,0 +1,6 @@
+.DS_Store
+.env
+*.jpg
+*.egg-info/
+examples/eden_creations
+__pycache__
