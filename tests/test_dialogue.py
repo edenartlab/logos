@@ -1,6 +1,6 @@
 import asyncio
 from logos.scenarios import dialogue
-from logos.characters import alice, bob
+from logos.sample_data.characters import alice, bob
 
 def test_dialogue_function():
     """

@@ -1,2 +1,3 @@
+from . import models
 from . import scenarios
-from . import characters
+from . import sample_data

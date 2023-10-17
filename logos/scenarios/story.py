@@ -1,7 +1,5 @@
-import re
 from simpleaichat import AsyncAIChat
-from string import Template
-
+from ..utils import clean_text
 from ..prompt_templates import (
     monologue_template, 
     dialogue_template, 
@@ -10,12 +8,6 @@ from ..prompt_templates import (
     director_template, 
     cinematographer_template
 )
-
-def clean_text(text):
-    pattern = r"^\d+[\.:]\s*\"?"
-    cleaned_text = re.sub(pattern, "", text, flags=re.MULTILINE)
-    return cleaned_text
-
 
 async def story(character, config):
     params = {"temperature": 1.0, "max_tokens": 1000}

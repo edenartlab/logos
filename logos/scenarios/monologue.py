@@ -1,6 +1,4 @@
 from simpleaichat import AsyncAIChat
-from string import Template
-
 from ..prompt_templates import monologue_template
 
 async def monologue(character, config):

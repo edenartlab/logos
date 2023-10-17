@@ -1,6 +1,6 @@
 import asyncio
 from logos.scenarios import monologue
-from logos.characters import alice
+from logos.sample_data.characters import alice
 
 def test_monologue_function():
     """

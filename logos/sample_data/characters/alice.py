@@ -1,4 +1,4 @@
-from ..models import Character
+from ...models import Character
 
 name = "Alice"
 
@@ -7,4 +7,6 @@ description = "Alice is a character in the Garden of Eden."
 alice = Character(
     name=name,
     description=description,
+    image=None,
+    voice=None
 )

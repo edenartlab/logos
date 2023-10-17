@@ -20,3 +20,6 @@ with open(dir_path / 'director.txt', 'r') as file:
 
 with open(dir_path / 'cinematographer.txt', 'r') as file:
     cinematographer_template = Template(file.read())
+
+with open(dir_path / 'qa.txt', 'r') as file:
+    qa_template = Template(file.read())

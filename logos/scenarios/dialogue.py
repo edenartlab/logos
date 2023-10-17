@@ -1,6 +1,4 @@
 from simpleaichat import AsyncAIChat
-from string import Template
-
 from ..prompt_templates import dialogue_template
 
 async def dialogue(characters, config):
@@ -28,7 +26,7 @@ async def dialogue(characters, config):
         if not message:
             raise Exception("No response from character")
 
-        conversation.append({"character": characters[m%2].name, "message": message})
+        conversation.append({"character": characters[m%2], "message": message})
 
     return conversation
 
