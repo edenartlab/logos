@@ -1,19 +1,20 @@
-from simpleaichat import AsyncAIChat
+from ..llm import AsyncLLM
 from ..prompt_templates import dialogue_template
 
-async def dialogue(characters, config):
+async def dialogue(characters, prompt, model="gpt-4", **params):
     llms = []
+    params = {"temperature": 0.0, "max_tokens": 1000, **params}
 
     for character in characters:
-        params = {"temperature": 0.0, "max_tokens": 1000}
+        
         system_message = dialogue_template.substitute(
             your_name=character.name,
             your_description=character.description,
             other_name=character.name,
             other_description=character.description,
-            prompt=config['prompt']
+            prompt=prompt
         )
-        llms.append(AsyncAIChat(system=system_message, params=params))
+        llms.append(AsyncLLM(system_message=system_message, params=params))
 
     message = "You are beginning the conversation. What is the first thing you say? Just the line. No quotes, no name markers."
 

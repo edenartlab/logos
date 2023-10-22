@@ -7,10 +7,9 @@ def test_story_function():
     Test if the story function returns a string
     """
     
-    config = {"prompt": "Tell me a story about pizza"}
-    result = asyncio.run(story(alice, config))
+    prompt = "Tell me a story about pizza"
+    result = asyncio.run(story(alice, prompt))
     
-    print(config)
     print(result)
 
     assert type(result) == list

@@ -7,11 +7,10 @@ def test_dialogue_function():
     Test if the dialogue function returns a conversation
     """
     
-    config = {"prompt": "Debate whether or not pizza is a vegetable"}
-    result = asyncio.run(dialogue([alice, bob], config))
+    prompt = "Debate whether or not pizza is a vegetable"
+    conversation = asyncio.run(dialogue([alice, bob], prompt))
     
-    print(config)
-    print(result)
+    print(conversation)
 
-    assert type(result) == list
-    assert len(result) > 0
+    assert type(conversation) == list
+    assert len(conversation) > 0

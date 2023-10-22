@@ -1,4 +1,4 @@
-from simpleaichat import AsyncAIChat
+from ..llm import AsyncLLM
 from ..utils import clean_text
 from ..prompt_templates import (
     monologue_template, 
@@ -9,7 +9,7 @@ from ..prompt_templates import (
     cinematographer_template
 )
 
-async def story(character, config):
+async def story(character, prompt):
     params = {"temperature": 1.0, "max_tokens": 1000}
     
     identity_message = identity_template.substitute(
@@ -32,13 +32,12 @@ async def story(character, config):
         your_description=character.description,
     )
 
-    screenwriter = AsyncAIChat(model="gpt-4", system=screenwriter_message, params=params, id="storyteller")
-    story = await screenwriter(config['prompt'])
+    screenwriter = AsyncLLM(model="gpt-4", system_message=screenwriter_message, params=params, id="storyteller")
+    director = AsyncLLM(model="gpt-4", system_message=director_message, params=params, id="director")
+    cinematographer = AsyncLLM(model="gpt-4", system_message=cinematographer_message, params=params, id="cinematographer")
 
-    director = AsyncAIChat(model="gpt-4", system=director_message, params=params, id="director")
+    story = await screenwriter(prompt)
     stills = await director(story)
-
-    cinematographer = AsyncAIChat(model="gpt-4", system=cinematographer_message, params=params, id="cinematographer")
     design = await cinematographer(stills)
 
     stills = stills.split("\n")
