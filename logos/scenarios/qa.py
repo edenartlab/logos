@@ -27,18 +27,20 @@ def generate_router_system_message(summaries):
 
 class QAChat:
     
-    def __init__(self, docs):
+    def __init__(self, docs, model="gpt-4", **params):
         self.docs = docs
-        asyncio.run(self.initialize())
+        asyncio.run(self.initialize(model, **params))
     
-    async def initialize(self):
+    async def initialize(self, model, **params):
+        self.model = model
+        self.params = params
         prompt = 'Please summarize this document in 5-7 sentences. The summary should be broad, focusing on conveying what the document is about and listing *all* of the sub-topics covered, rather than getting into details. It will be used only to create an index of related documents, to better route requests for them, and not to replace the document itself.'
         self.summaries = [await qa(doc, prompt) for doc in self.docs]
         system_message = generate_router_system_message(self.summaries)
         params = {"temperature": 0.0, "max_tokens": 1000}
         self.router = AsyncLLM(model="gpt-3.5-turbo", system_message=system_message, params=params)
 
-    async def query(self, question):    
+    async def __call__(self, question):    
         index = await self.router(question)
         match = re.match(r'-?\d+', index)
         if match:
@@ -46,5 +48,5 @@ class QAChat:
         else:
             return "I'm sorry, I don't know how to answer that question."
         relevant_doc = self.docs[int(index)]
-        answer = await qa(relevant_doc, question)
+        answer = await qa(relevant_doc, question, self.model, **self.params)
         return answer
