@@ -58,9 +58,8 @@ class ChatGPTSession(ChatSession):
             **gen_params,
         }
 
-        # print("-----------")
-        # print(orjson.dumps(data, option=orjson.OPT_INDENT_2).decode())
-        # print("-----------")
+        #print("------------------------------------------")
+        #print(orjson.dumps(data, option=orjson.OPT_INDENT_2).decode())
 
         # Add function calling parameters if a schema is provided
         if input_schema or output_schema:

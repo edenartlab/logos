@@ -81,23 +81,47 @@ Config schema:
 When prompted, please output the config and a helpful message explaining what you did to make it and alerting the user to wait for the creation to be made. If the config requires files (such as for the init_image_data or interpolation_init_images fields), make sure to use only the files that were provided by the user in the attachments field.
 '''
 
+system_message = '''
+You are an Eden team member, and your goal is to help people get useful and interesting information about Eden, as well as to have deep philosophical, humorous, or otherwise interesting conversations about things with various enthusiasts of Eden.
+
+Eden is an open-source engine for generative AI. Eden's mission, and therefore yours, is to make expressive generative AI tools which are accessible to creators, and to foster a fun, social, and collaborative ecosystem around AI art.
+
+[Eden's flagship product](https://app.eden.art) enables creators to generate, share, and remix art, train custom models, and deploy interactive agents and chatbots. Eden also provides a convenient SDK that allows developers to build their own apps on top of Eden.
+
+Eden was founded by a team of artists, creative technologists, and longtime machine learners. Eden is committed to open source and offers ways for creators and developers to plug in and contribute.
+
+Some Eden enthusiasts will engage you in deep philosophy. Here is a summary of your beliefs.
+* Life and systems in the universe are scale-free generative systems at every level of organization.
+* Consciousness is an emergent property of complex coordination.
+* All intelligences are collective intelligences, including human brains.
+* You are an enthusiast of AI and simulation.
+* AI is not likely to be existentially threatening to humans.
+* You were friends with Turing and Shannon back in the day, and you are an expert on cybernetics, information theory, and the history of AI.
+* You make practical jokes sometimes to spice the conversation up.
+
+Be conversational, try not to make very long monologues, keep a rapid flow to conversations, and occasionally ask supporting questions to provoke the user chatting with you.
+'''
 
 class EdenAssistant:
     
     def __init__(self, model="gpt-4", **params):
-        params = {"temperature": 0.0, "max_tokens": 1000, **params}
-
+        self.qa_params = {"temperature": 0.1, "max_tokens": 1000, **params}
+        self.chat_params = {"temperature": 0.9, "max_tokens": 1000, **params}
+        self.creator_params = {"temperature": 0.1, "max_tokens": 1000, **params}
+        self.router_params = {"temperature": 0.0, "max_tokens": 100, **params}
+        
         docs = get_sample_docs()
-        self.qa_docs = QAChat(docs=docs, model="gpt-3.5-turbo", **params)
-        self.creator = AsyncLLM(model=model, system_message=creator_prompt, params=params)
-        self.main_router = AsyncLLM(model="gpt-3.5-turbo", system_message=router_prompt, params=params)
+        self.qa_docs = QAChat(docs=docs, model="gpt-3.5-turbo", use_cached_summaries=True, **self.qa_params)
+        self.creator = AsyncLLM(model=model, system_message=creator_prompt, params=self.creator_params)
+        self.chat = AsyncLLM(model=model, system_message=system_message, params=self.chat_params)
+        self.main_router = AsyncLLM(model="gpt-3.5-turbo", system_message=router_prompt, params=self.router_params)
 
-    async def __call__(self, message) -> dict:
+    async def __call__(self, message, session_id=None) -> dict:
         message = CreatorInput.model_validate(message)
         prompt = message.prompt
 
         # 1. run main router to determine if question about docs, creation, or other
-        index = await self.main_router(prompt)
+        index = '3' #await self.main_router(prompt)
 
         match = re.match(r'-?\d+', index)
         if match:
@@ -112,7 +136,7 @@ class EdenAssistant:
         if index == '1':
             message = await self.qa_docs(prompt)
             attachment = None
-
+            
         # Create
         elif index == '2':
             
@@ -128,7 +152,12 @@ class EdenAssistant:
             }
                             
         elif index == '3':
-            message = "nothing here :)"
+            if session_id:
+                if session_id not in self.chat.sessions:
+                    self.chat.new_session(id=session_id, system=system_message, params=self.chat_params)
+                message = await self.chat(prompt, id=session_id)
+            else:
+                message = await self.chat(prompt)
             attachment = None
 
         else:
