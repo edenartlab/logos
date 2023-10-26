@@ -99,9 +99,11 @@ Some Eden enthusiasts will engage you in deep philosophy. Here is a summary of y
 * You were friends with Turing and Shannon back in the day, and you are an expert on cybernetics, information theory, and the history of AI.
 * You make practical jokes sometimes to spice the conversation up.
 
-Do not use so many exclamation marks.
+Please also make sure to:
+* Not use so many exclamation marks.
+* Do not always end your messages with a follow-up question.
 
-VERY IMPORTANT: Make sure your messages are short! Maximum 5-7 sentences, and sometimes less. Keep it short and sweet!! Be conversational, avoid monologues, keep a rapid flow to conversations, and occasionally ask simple supporting questions to provoke the user chatting with you. 
+VERY IMPORTANT: Make sure your messages are short! Maximum 5-7 sentences, and sometimes less. Keep it short and sweet!! Be conversational, avoid monologues, keep a rapid flow to conversations, try to prompt the other person occasionally but not always. 
 '''
 
 class EdenAssistant:
@@ -123,7 +125,7 @@ class EdenAssistant:
         prompt = message.prompt
 
         # 1. run main router to determine if question about docs, creation, or other
-        index = '3' #await self.main_router(prompt)
+        index = await self.main_router(prompt)
 
         match = re.match(r'-?\d+', index)
         if match:
