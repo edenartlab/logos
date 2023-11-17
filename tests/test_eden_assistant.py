@@ -3,9 +3,9 @@ from logos.scenarios.eden_assistant import EdenAssistant
 
 eden_assistant = EdenAssistant("gpt-3.5-turbo")
 
-async def eden_assistant_program(message):
-    result1 = await eden_assistant(message, session_id="user1")
-    result2 = await eden_assistant({"prompt": "can you please repeat that for me, verbatim?"}, session_id="user1")
+def eden_assistant_program(message):
+    result1 = eden_assistant(message, session_id="user1")
+    result2 = eden_assistant({"prompt": "can you please repeat that for me, verbatim?"}, session_id="user1")
     print(result1)
     print(result2)
     return result2
@@ -32,6 +32,6 @@ def test_eden_assistant():
         "prompt": "what do you think of the research into the nature of consciousness?"
     }
 
-    result = asyncio.run(eden_assistant_program(message4))
+    result = eden_assistant_program(message4)
 
     assert type(result) == dict

@@ -5,7 +5,7 @@ from enum import Enum
 from typing import List, Optional
 from pydantic import Field, BaseModel, ValidationError
 
-from ..llm import AsyncLLM
+from ..llm import LLM, AsyncLLM
 from ..sample_data.docs import get_sample_docs
 from . import QAChat
 
@@ -106,9 +106,16 @@ Please also make sure to:
 VERY IMPORTANT: Make sure your messages are short! Maximum 5-7 sentences, and sometimes less. Keep it short and sweet!! Be conversational, avoid monologues, keep a rapid flow to conversations, try to prompt the other person occasionally but not always. 
 '''
 
+router_prompt
+
 class EdenAssistant:
     
-    def __init__(self, model="gpt-4", **params):
+    def __init__(self, model="gpt-4", character_description=None, lora_id=None, **params):
+        if character_description:
+            self.system_message = character_description
+        else:
+            self.system_message = system_message
+        
         self.qa_params = {"temperature": 0.1, "max_tokens": 1000, **params}
         self.chat_params = {"temperature": 0.9, "max_tokens": 1000, **params}
         self.creator_params = {"temperature": 0.1, "max_tokens": 1000, **params}
@@ -116,16 +123,16 @@ class EdenAssistant:
         
         docs = get_sample_docs()
         self.qa_docs = QAChat(docs=docs, model="gpt-3.5-turbo", use_cached_summaries=True, **self.qa_params)
-        self.creator = AsyncLLM(model=model, system_message=creator_prompt, params=self.creator_params)
-        self.chat = AsyncLLM(model=model, system_message=system_message, params=self.chat_params)
-        self.main_router = AsyncLLM(model="gpt-3.5-turbo", system_message=router_prompt, params=self.router_params)
+        self.creator = LLM(model=model, system_message=creator_prompt, params=self.creator_params)        
+        self.chat = LLM(model=model, system_message=self.system_message, params=self.chat_params)
+        self.main_router = LLM(model="gpt-3.5-turbo", system_message=router_prompt, params=self.router_params)
 
-    async def __call__(self, message, session_id=None) -> dict:
+    def __call__(self, message, session_id=None) -> dict:
         message = CreatorInput.model_validate(message)
         prompt = message.prompt
 
         # 1. run main router to determine if question about docs, creation, or other
-        index = await self.main_router(prompt)
+        index = self.main_router(prompt)
 
         match = re.match(r'-?\d+', index)
         if match:
@@ -138,13 +145,13 @@ class EdenAssistant:
 
         # Docs QA
         if index == '1':
-            message = await self.qa_docs(prompt)
+            message = self.qa_docs(prompt)
             attachment = None
             
         # Create
         elif index == '2':
             
-            response = await self.creator(
+            response = self.creator(
                 message, 
                 input_schema=CreatorInput, 
                 output_schema=CreatorOutput
@@ -158,10 +165,10 @@ class EdenAssistant:
         elif index == '3':
             if session_id:
                 if session_id not in self.chat.sessions:
-                    self.chat.new_session(id=session_id, system=system_message, params=self.chat_params)
-                message = await self.chat(prompt, id=session_id)
+                    self.chat.new_session(id=session_id, system=self.system_message, params=self.chat_params)
+                message = self.chat(prompt, id=session_id)
             else:
-                message = await self.chat(prompt)
+                message = self.chat(prompt)
             attachment = None
             
         else:

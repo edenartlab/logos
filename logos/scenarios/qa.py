@@ -1,18 +1,18 @@
 import re
 import asyncio
-from ..llm import AsyncLLM
+from ..llm import LLM, AsyncLLM
 from ..prompt_templates import qa_template
 from ..sample_data.docs import get_cached_eden_summary
 
-async def qa(document, question, model="gpt-4", **params):
+def qa(document, question, model="gpt-4", **params):
     params = {"temperature": 0.0, "max_tokens": 1000, **params}
     
     system_message = qa_template.substitute(
         docs_content=document
     )
     
-    llm = AsyncLLM(model=model, system_message=system_message, params=params)
-    message = await llm(question)
+    llm = LLM(model=model, system_message=system_message, params=params)
+    message = llm(question)
     
     return message
 
@@ -30,27 +30,27 @@ class QAChat:
     
     def __init__(self, docs, model="gpt-4", use_cached_summaries=False, **params):
         self.docs = docs
-        asyncio.run(self.initialize(model, use_cached_summaries, **params))
+        self.initialize(model, use_cached_summaries, **params)
     
-    async def initialize(self, model, use_cached_summaries, **params):
+    def initialize(self, model, use_cached_summaries, **params):
         self.model = model
         self.params = params
         prompt = 'Please summarize this document in 5-7 sentences. The summary should be broad, focusing on conveying what the document is about and listing *all* of the sub-topics covered, rather than getting into details. It will be used only to create an index of related documents, to better route requests for them, and not to replace the document itself.'
         if use_cached_summaries:
             self.summaries = get_cached_eden_summary()
         else:
-            self.summaries = [await qa(doc, prompt) for doc in self.docs]
+            self.summaries = [qa(doc, prompt) for doc in self.docs]
         system_message = generate_router_system_message(self.summaries)
         params = {"temperature": 0.0, "max_tokens": 1000}
-        self.router = AsyncLLM(model="gpt-3.5-turbo", system_message=system_message, params=params)
+        self.router = LLM(model="gpt-3.5-turbo", system_message=system_message, params=params)
 
-    async def __call__(self, question):    
-        index = await self.router(question)
+    def __call__(self, question):    
+        index = self.router(question)
         match = re.match(r'-?\d+', index)
         if match:
             index = match.group()
         else:
             return "I'm sorry, I don't know how to answer that question."
         relevant_doc = self.docs[int(index)]
-        answer = await qa(relevant_doc, question, self.model, **self.params)
+        answer = qa(relevant_doc, question, self.model, **self.params)
         return answer
