@@ -115,6 +115,7 @@ class EdenAssistant:
             self.system_message = character_description
         else:
             self.system_message = system_message
+        self.lora_id = lora_id
         
         self.qa_params = {"temperature": 0.1, "max_tokens": 1000, **params}
         self.chat_params = {"temperature": 0.9, "max_tokens": 1000, **params}
