@@ -71,10 +71,10 @@ The full schema of a config is as follows. Not all fields are relevant to all ge
 
 Config schema:
 * "generator" is which generator to use.
-* "text_input" is the text prompt which describes the desired image. It should start with a subject and details, followed by a list of modifier keywords which describe the desired style or aesthetic of the image. Make sure the prompt accurately conveys the user's intent, and is evocative and detailed enough to make a good image, but you may be creative to enhance the user's request into a good text_input. (create, controlnet)
+* "text_input" is the text prompt which describes the desired image. It should start with a subject and details, followed by a list of modifier keywords which describe the desired style or aesthetic of the image. Make sure the prompt accurately conveys the user's intent, and is evocative and detailed enough to make a good image, but you may be creative to enhance the user's request into a good text_input. VERY IMPORTANT: if the user asks you to make an image including or of yourself, you should include YOUR NAME in the text_input. (create, controlnet)
 * "init_image_data" is a path to an image file which is used as an input or control image for a generator that operates on input images (remix, controlnet, upscale)
 * "interpolation_init_images" is a *list* of image paths to generate a real2real interpolation video OR a blended image. Image paths must be provided. Copy them from the user. (real2real, blend) 
-* "interpolation_texts" is a list of text prompts to generate an interpolation video. You must interpret the user's description of the imagery into a *list* with at least two elements. Be creative. (interpolate)
+* "interpolation_texts" is a list of text prompts to generate an interpolation video. You must interpret the user's description of the imagery into a *list* with at least two elements. Be creative. VERY IMPORTANT: if the user asks you to make a video including or of yourself, you should include YOUR NAME in all the interpolation_texts. (interpolate)
 * "n_frames" is the number of frames (at 12fps) in the output video. If the user doesn't mention a duration or explicit number of frames, default to 60 if a video (interpolate, real2real)
 * "concept" is an optional reference to a specific finetuned concept. Only the following concepts are available: Banny, Kojii, LittleMartian. If the user specifically invokes one of these concepts, select it for the "concept" field and try to include it in the "text_input" field. Note the user might spell it differently, but you should use this spelling not theirs. If no concept is referenced, leave it blank. (create)
 
@@ -110,13 +110,15 @@ router_prompt
 
 class EdenAssistant:
     
-    def __init__(self, model="gpt-4", character_description=None, lora_id=None, **params):
-        if character_description:
-            self.system_message = character_description
-        else:
-            self.system_message = system_message
-        self.lora_id = lora_id
+    def __init__(self, model="gpt-4", character_name=None, character_description=None, lora_id=None, **params):
+        self.system_message = character_description if character_description else system_message
+        self.creator_prompt = f'YOUR NAME: {character_name}.\n{creator_prompt}' if character_name else creator_prompt
+
+        print("creatr prompt")
+        print(self.creator_prompt)
         
+        self.lora_id = lora_id
+
         self.qa_params = {"temperature": 0.1, "max_tokens": 1000, **params}
         self.chat_params = {"temperature": 0.9, "max_tokens": 1000, **params}
         self.creator_params = {"temperature": 0.1, "max_tokens": 1000, **params}
@@ -124,7 +126,7 @@ class EdenAssistant:
         
         docs = get_sample_docs()
         self.qa_docs = QAChat(docs=docs, model="gpt-3.5-turbo", use_cached_summaries=True, **self.qa_params)
-        self.creator = LLM(model=model, system_message=creator_prompt, params=self.creator_params)        
+        self.creator = LLM(model=model, system_message=self.creator_prompt, params=self.creator_params)        
         self.chat = LLM(model=model, system_message=self.system_message, params=self.chat_params)
         self.main_router = LLM(model="gpt-3.5-turbo", system_message=router_prompt, params=self.router_params)
 
