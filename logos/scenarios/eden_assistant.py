@@ -294,7 +294,6 @@ class EdenAssistant:
     def __call__(self, message, session_id=None) -> dict:
         message = CreatorInput.model_validate(message)
 
-
         if session_id:
             if session_id not in self.router.sessions:
                 self.router.new_session(id=session_id, model="gpt-4-1106-preview", system=self.router_prompt, params=self.router_params)
