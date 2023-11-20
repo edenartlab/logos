@@ -113,6 +113,22 @@ class LLM(BaseModel):
         finally:
             self.delete_session(sess.id)
 
+    def add_messages(
+        self,
+        user_message: ChatMessage,
+        assistant_message: ChatMessage,
+        id: Union[str, UUID] = None,
+    ) -> None:
+        sess = self.get_session(id)
+        sess.add_messages(user_message, assistant_message, True)
+
+    def get_messages(
+        self, 
+        id: Union[str, UUID] = None
+    ) -> List[ChatMessage]:
+        sess = self.get_session(id)
+        return sess.messages
+
     def __call__(
         self,
         prompt: Union[str, Any],
@@ -196,8 +212,13 @@ class LLM(BaseModel):
             return self.default_session.model_dump_json(
                 exclude={"api_key", "api_url"},
                 exclude_none=True,
-                option=orjson.OPT_INDENT_2,
+                # option=orjson.OPT_INDENT_2
             )
+
+    def print_messages(self) -> str:
+        if self.default_session:
+            for msg in self.default_session.messages:
+                print(f"{msg.role} : {msg.content}")
 
     def __repr__(self) -> str:
         return ""

@@ -29,7 +29,12 @@ class ChatMessage(BaseModel):
     total_length: Optional[int] = None
 
     def __str__(self) -> str:
-        return str(self.model_dump(exclude_none=True))
+        return str(
+            self.model_dump(
+                exclude_none=True,
+                # option=orjson.OPT_INDENT_2
+            )
+        )
 
 
 class ChatSession(BaseModel):

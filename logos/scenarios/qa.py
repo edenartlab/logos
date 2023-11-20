@@ -2,7 +2,7 @@ import re
 import asyncio
 from ..llm import LLM, AsyncLLM
 from ..prompt_templates import qa_template
-from ..sample_data.docs import get_cached_eden_summary
+#from ..sample_data.docs import get_cached_eden_summary
 
 def qa(document, question, model="gpt-4", **params):
     params = {"temperature": 0.0, "max_tokens": 1000, **params}
