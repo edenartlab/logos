@@ -39,16 +39,19 @@ def test_eden_assistant():
         "prompt": "what do you think of the research into the nature of consciousness?"
     }
 
-    
     result1 = eden_assistant(message1, session_id="user1")
     print(result1)
+
     result2 = eden_assistant(message2, session_id="user1")
     print(result2)
+    
     result3 = eden_assistant(message3, session_id="user1")
     print(result3)
+    
     result4 = eden_assistant(message4, session_id="user1")
     print(result4)
-
     
-    
-    # assert type(result) == dict
+    assert type(result1) == dict
+    assert type(result2) == dict
+    assert type(result3) == dict
+    assert type(result4) == dict

@@ -23,10 +23,9 @@ def get_creator_prompt():
     with open(dir_path / 'creator_prompt.txt', 'r') as file:
         return file.read()
 
-def get_sample_docs():
-    doc_files = glob.glob(str(dir_path / 'eden/*.md'))
+def get_docs():
+    doc_files = glob.glob(str(dir_path / 'docs/*.md'))
     docs = []
-
     for doc_file in doc_files:
         with open(doc_file, 'r') as file:
             docs.append(file.read())

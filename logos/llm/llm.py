@@ -215,9 +215,10 @@ class LLM(BaseModel):
                 # option=orjson.OPT_INDENT_2
             )
 
-    def print_messages(self) -> str:
-        if self.default_session:
-            for msg in self.default_session.messages:
+    def print_messages(self, id: Union[str, UUID] = None) -> None:
+        session = self.get_session(id) if id else self.default_session
+        if session:
+            for msg in session.messages:
                 print(f"{msg.role} : {msg.content}")
 
     def __repr__(self) -> str:

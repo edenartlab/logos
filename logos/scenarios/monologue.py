@@ -1,7 +1,7 @@
-from ..llm import AsyncLLM
+from ..llm import LLM
 from ..prompt_templates import monologue_template
 
-async def monologue(character, prompt, model="gpt-4", **params):
+def monologue(character, prompt, model="gpt-4", **params):
     params = {"temperature": 0.0, "max_tokens": 1000, **params}
     
     system_message = monologue_template.substitute(
@@ -9,7 +9,7 @@ async def monologue(character, prompt, model="gpt-4", **params):
         your_description=character.description        
     )
     
-    llm = AsyncLLM(model=model, system_message=system_message, params=params)
-    message = await llm(prompt)
+    llm = LLM(model=model, system_message=system_message, params=params)
+    message = llm(prompt)
     
     return message

@@ -1,4 +1,3 @@
-import asyncio
 from logos.scenarios import story
 from logos.sample_data.characters import alice
 
@@ -8,7 +7,7 @@ def test_story_function():
     """
     
     prompt = "Tell me a story about pizza"
-    result = asyncio.run(story(alice, prompt))
+    result = story(alice, prompt)
     
     print(result)
 

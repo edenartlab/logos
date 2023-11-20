@@ -1,8 +1,6 @@
 import re
-import asyncio
-from ..llm import LLM, AsyncLLM
+from ..llm import LLM
 from ..prompt_templates import qa_template
-#from ..sample_data.docs import get_cached_eden_summary
 
 def qa(document, question, model="gpt-4", **params):
     params = {"temperature": 0.0, "max_tokens": 1000, **params}
@@ -16,15 +14,11 @@ def qa(document, question, model="gpt-4", **params):
     
     return message
 
-
-# TODO: If none of the categories seem appropriate or relevant, answer -1. 
-# message += f"-1: Irrelevant/none of these\n"
 def generate_router_system_message(summaries):
     message = "Your job is to route user's queries to the appropriate expert. Given a user prompt, determine which of the following categories is the most relevant to the query.\n\nBelow is a numbered list of categories, and their descriptions. When prompted, answer with JUST THE NUMBER of the most relevant category, and no additional text.\n\n"
     for i, summary in enumerate(summaries):
         message += f"{i}: {summary}\n"
     return message
-
 
 class QAChat:
     

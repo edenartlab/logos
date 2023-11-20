@@ -1,4 +1,3 @@
-import asyncio
 from logos.scenarios import dialogue
 from logos.sample_data.characters import alice, bob
 
@@ -8,7 +7,7 @@ def test_dialogue_function():
     """
     
     prompt = "Debate whether or not pizza is a vegetable"
-    conversation = asyncio.run(dialogue([alice, bob], prompt))
+    conversation = dialogue([alice, bob], prompt)
     
     print(conversation)
 

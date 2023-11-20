@@ -1,7 +1,7 @@
-from ..llm import AsyncLLM
+from ..llm import LLM
 from ..prompt_templates import dialogue_template
 
-async def dialogue(characters, prompt, model="gpt-4", **params):
+def dialogue(characters, prompt, model="gpt-4", **params):
     llms = []
     params = {"temperature": 0.0, "max_tokens": 1000, **params}
 
@@ -14,7 +14,7 @@ async def dialogue(characters, prompt, model="gpt-4", **params):
             other_description=character.description,
             prompt=prompt
         )
-        llms.append(AsyncLLM(system_message=system_message, params=params))
+        llms.append(LLM(system_message=system_message, params=params))
 
     message = "You are beginning the conversation. What is the first thing you say? Just the line. No quotes, no name markers."
 
@@ -22,7 +22,7 @@ async def dialogue(characters, prompt, model="gpt-4", **params):
 
     for m in range(4):
         llm = llms[m % 2]
-        message = await llm(message)
+        message = llm(message)
 
         if not message:
             raise Exception("No response from character")
