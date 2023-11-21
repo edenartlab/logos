@@ -124,7 +124,7 @@ class EdenAssistant:
             assistant_message = ChatMessage(role="assistant", content=response)
 
             output = {
-                "message": message,
+                "message": response,
                 "attachment": None
             }
             
@@ -158,13 +158,13 @@ class EdenAssistant:
             assistant_message = ChatMessage(role="assistant", content=response)
 
             output = {
-                "message": message,
+                "message": response,
                 "attachment": None
             }
 
-        print("------- add messages --------\n")
-        print(user_message)
-        print(assistant_message)
+        # print("------- add messages --------\n")
+        # print(user_message)
+        # print(assistant_message)
 
         self.router.add_messages(user_message, assistant_message, id=session_id)
         self.creator.add_messages(user_message, assistant_message, id=session_id)
