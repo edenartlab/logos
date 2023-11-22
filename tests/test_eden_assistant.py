@@ -55,3 +55,4 @@ def test_eden_assistant():
     assert type(result2) == dict
     assert type(result3) == dict
     assert type(result4) == dict
+

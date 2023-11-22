@@ -1,5 +1,6 @@
 import re
 import orjson
+import random
 import asyncio
 from enum import Enum
 from typing import List, Optional
@@ -9,7 +10,6 @@ from pydantic import Field, BaseModel, ValidationError
 # from . import QAChat
 from logos.llm import LLM
 from logos.llm.models import ChatMessage
-
 
 class GeneratorMode(Enum):
     create = 'create'
@@ -26,9 +26,11 @@ class Config(BaseModel):
     """
     generator: GeneratorMode = Field(description="Which generator to use")
     text_input: Optional[str] = Field(description="Text prompt that describes image")
-    init_image_data: Optional[str] = Field(description="Path to image file for create, remix, or upscale")
+    seed: Optional[int] = Field(description="Seed for random number generator")
+    init_image: Optional[str] = Field(description="Path to image file for create, remix, or upscale")
     interpolation_init_images: Optional[List[str]] = Field(description="List of paths to image files for real2real or blend")
     interpolation_texts: Optional[List[str]] = Field(description="List of text prompts for interpolate")
+    interpolation_seeds: Optional[List[int]] = Field(description="List of seeds for interpolation texts")
     n_frames: Optional[int] = Field(description="Number of frames in output video")
     concept: Optional[str] = Field(description="Reference to a specific finetuned concept")
 
@@ -59,7 +61,7 @@ class EdenAssistant:
         documentation,
         router_prompt
     ):
-        self.router_params = {"temperature": 0.0, "max_tokens": 1000}
+        self.router_params = {"temperature": 0.0, "max_tokens": 10}
         self.creator_params = {"temperature": 0.1, "max_tokens": 1000}
         self.qa_params = {"temperature": 0.2, "max_tokens": 1000}
         self.chat_params = {"temperature": 0.9, "max_tokens": 1000}
@@ -125,23 +127,32 @@ class EdenAssistant:
 
             output = {
                 "message": response,
-                "attachment": None
+                "config": None
             }
             
         # request a creation
         elif index == "2":
-            output = self.creator(
+            response = self.creator(
                 message, 
                 id=session_id,
                 input_schema=CreatorInput, 
                 output_schema=CreatorOutput
             )
-            attachment_out = {
-                k: v for k, v in output["config"].items() if v
+            
+            config = {
+                k: v for k, v in response["config"].items() if v
             }
-            message_out = output["message"]
-            if attachment_out:
-                message_out += f"\n\nAttachments: {attachment_out}"
+
+            # insert seeds if not provided
+            if config.get("interpolation_texts"):
+                if not config.get("interpolation_seeds"):
+                    config["interpolation_seeds"] = [random.randint(0, 1000000) for _ in config["interpolation_texts"]]
+            elif not config.get("seed"):
+                config["seed"] = random.randint(0, 1000000)            
+            
+            message_out = response["message"]
+            if config:
+                message_out += f"\n\Config: {config}"
             
             message_in = message.prompt
             if message.attachments:
@@ -149,6 +160,11 @@ class EdenAssistant:
 
             user_message = ChatMessage(role="user", content=message_in)
             assistant_message = ChatMessage(role="assistant", content=message_out)
+
+            output = {
+                "message": response.get("message"),
+                "config": config
+            }
         
         # chat
         elif index == "3":
@@ -159,12 +175,8 @@ class EdenAssistant:
 
             output = {
                 "message": response,
-                "attachment": None
+                "config": None
             }
-
-        # print("------- add messages --------\n")
-        # print(user_message)
-        # print(assistant_message)
 
         self.router.add_messages(user_message, assistant_message, id=session_id)
         self.creator.add_messages(user_message, assistant_message, id=session_id)
@@ -172,4 +184,5 @@ class EdenAssistant:
         self.chat.add_messages(user_message, assistant_message, id=session_id)
 
         return output
+
 
