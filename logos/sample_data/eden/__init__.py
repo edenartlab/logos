@@ -3,24 +3,16 @@ from pathlib import Path
 
 dir_path = Path(__file__).parent
 
-def get_documentation():
-    with open(dir_path / 'documentation.txt', 'r') as file:
+def get_identity():
+    with open(dir_path / 'identity.txt', 'r') as file:
         return file.read()
 
-def get_documentation_prompt():
-    with open(dir_path / 'documentation_prompt.txt', 'r') as file:
+def get_knowledge():
+    with open(dir_path / 'knowledge.txt', 'r') as file:
         return file.read()
 
-def get_character_description():
-    with open(dir_path / 'character_description.txt', 'r') as file:
-        return file.read()
-
-def get_router_prompt():
-    with open(dir_path / 'router_prompt.txt', 'r') as file:
-        return file.read()
-
-def get_creator_prompt():
-    with open(dir_path / 'creator_prompt.txt', 'r') as file:
+def get_knowledge_summary():
+    with open(dir_path / 'knowledge_summary.txt', 'r') as file:
         return file.read()
 
 def get_docs():

@@ -1,6 +1,8 @@
 from string import Template
 from pathlib import Path
 
+from . import assistant
+
 dir_path = Path(__file__).parent
 
 with open(dir_path / 'monologue.txt', 'r') as file:

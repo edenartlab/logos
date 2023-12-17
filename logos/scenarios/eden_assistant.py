@@ -6,10 +6,14 @@ from enum import Enum
 from typing import List, Optional
 from pydantic import Field, BaseModel, ValidationError
 
-# from ..llm import LLM, AsyncLLM
-# from . import QAChat
-from logos.llm import LLM
-from logos.llm.models import ChatMessage
+from ..llm import LLM
+from ..llm.models import ChatMessage
+from ..prompt_templates.assistant import (
+    chat_template,
+    creator_template,
+    qa_template,
+    router_template
+)
 
 class GeneratorMode(Enum):
     create = 'create'
@@ -18,7 +22,6 @@ class GeneratorMode(Enum):
     real2real = 'real2real'
     remix = 'remix'
     upscale = 'upscale'
-
 
 class Config(BaseModel):
     """
@@ -34,14 +37,12 @@ class Config(BaseModel):
     n_frames: Optional[int] = Field(description="Number of frames in output video")
     concept: Optional[str] = Field(description="Reference to a specific finetuned concept")
 
-
 class CreatorOutput(BaseModel):
     """
     Output of creator LLM containing a JSON config and a message to the user
     """
     config: Config = Field(description="Config for Eden generator")
     message: str = Field(description="Message to user")
-
 
 class CreatorInput(BaseModel):
     """
@@ -55,21 +56,54 @@ class EdenAssistant:
     
     def __init__(
         self,
-        character_description, 
-        creator_prompt, 
-        documentation_prompt, 
-        documentation,
-        router_prompt
+        name,
+        identity,
+        knowledge_summary=None,
+        knowledge=None,
+        creation_enabled=True,
+        available_concepts=[],
     ):
         self.router_params = {"temperature": 0.0, "max_tokens": 10}
         self.creator_params = {"temperature": 0.1, "max_tokens": 1000}
         self.qa_params = {"temperature": 0.2, "max_tokens": 1000}
         self.chat_params = {"temperature": 0.9, "max_tokens": 1000}
 
-        self.router_prompt = router_prompt
-        self.creator_prompt = creator_prompt
-        self.qa_prompt = f"{documentation_prompt}\n\nUse the following documentation for context\n\n---\n{documentation}\n---\n"
-        self.chat_prompt = character_description
+        self.function_map = {"1": self._chat_}
+        options = ["Regular conversation, chat, humor, or small talk"]
+
+        if knowledge_summary:
+            options.append("A question about or reference to your knowledge")
+            knowledge_summary = f"You have the following knowledge: {knowledge_summary}"
+            self.function_map[str(len(options))] = self._qa_
+        if creation_enabled:
+            options.append("A request for an image or video creation")
+            self.function_map[str(len(options))] = self._create_
+
+        if len(options) == 1:
+            self.router_prompt = None
+        else:
+            options_prompt = ""
+            for i, option in enumerate(options):
+                options_prompt += f"{i+1}. {option}\n"                
+            self.router_prompt = router_template.substitute(
+                knowledge_summary=knowledge_summary or "",
+                options=options_prompt
+            )
+
+        self.chat_prompt = chat_template.substitute(
+            name=name,
+            identity=identity,
+        )
+
+        self.qa_prompt = qa_template.substitute(
+            name=name,
+            identity=identity,
+            knowledge=knowledge,
+        )
+
+        self.creator_prompt = creator_template.substitute(
+            name=name,
+        )
         
         self.router = LLM(model="gpt-4-1106-preview", system_message=self.router_prompt, params=self.router_params)
         self.creator = LLM(model="gpt-4-1106-preview", system_message=self.creator_prompt, params=self.creator_params)
@@ -95,6 +129,74 @@ class EdenAssistant:
         else:
             return None
 
+    def _chat_(
+        self,
+        message,
+        session_id=None
+    ) -> dict:
+        response = self.chat(message.prompt, id=session_id, save_messages=False)
+        user_message = ChatMessage(role="user", content=message.prompt)
+        assistant_message = ChatMessage(role="assistant", content=response)
+        output = {
+            "message": response,
+            "config": None
+        }
+        return output, user_message, assistant_message
+
+    def _qa_(
+        self,
+        message,
+        session_id=None
+    ) -> dict:
+        response = self.qa(message.prompt, id=session_id, save_messages=False)    
+        user_message = ChatMessage(role="user", content=message.prompt)
+        assistant_message = ChatMessage(role="assistant", content=response)
+        output = {
+            "message": response,
+            "config": None
+        }
+        return output, user_message, assistant_message
+
+    def _create_(
+        self,
+        message,
+        session_id=None
+    ) -> dict:
+        response = self.creator(
+            message, 
+            id=session_id,
+            input_schema=CreatorInput, 
+            output_schema=CreatorOutput
+        )
+        
+        config = {
+            k: v for k, v in response["config"].items() if v
+        }
+
+        # insert seeds if not provided
+        if config.get("interpolation_texts"):
+            if not config.get("interpolation_seeds"):
+                config["interpolation_seeds"] = [random.randint(0, 1000000) for _ in config["interpolation_texts"]]
+        elif not config.get("seed"):
+            config["seed"] = random.randint(0, 1000000)            
+        
+        message_out = response["message"]
+        if config:
+            message_out += f"\n\Config: {config}"
+        
+        message_in = message.prompt
+        if message.attachments:
+            message_in += f"\n\nAttachments: {message.attachments}"
+
+        user_message = ChatMessage(role="user", content=message_in)
+        assistant_message = ChatMessage(role="assistant", content=message_out)
+
+        output = {
+            "message": response.get("message"),
+            "config": config
+        }
+        return output, user_message, assistant_message
+
     def __call__(
         self, 
         message, 
@@ -111,72 +213,18 @@ class EdenAssistant:
                 self.chat.new_session(id=session_id, model="gpt-4-1106-preview", system=self.chat_prompt, params=self.chat_params)
         
         index = self._route_(message, session_id=session_id)
+        function = self.function_map.get(index)
 
-        if not index:        
+        if not function:     
             return {
                 "message": "I'm sorry, I don't know how to respond to that.",
                 "attachment": None
             }
 
-        # ask a question about docs
-        if index == "1":
-            response = self.qa(message.prompt, id=session_id, save_messages=False)
-            
-            user_message = ChatMessage(role="user", content=message.prompt)
-            assistant_message = ChatMessage(role="assistant", content=response)
-
-            output = {
-                "message": response,
-                "config": None
-            }
-            
-        # request a creation
-        elif index == "2":
-            response = self.creator(
-                message, 
-                id=session_id,
-                input_schema=CreatorInput, 
-                output_schema=CreatorOutput
-            )
-            
-            config = {
-                k: v for k, v in response["config"].items() if v
-            }
-
-            # insert seeds if not provided
-            if config.get("interpolation_texts"):
-                if not config.get("interpolation_seeds"):
-                    config["interpolation_seeds"] = [random.randint(0, 1000000) for _ in config["interpolation_texts"]]
-            elif not config.get("seed"):
-                config["seed"] = random.randint(0, 1000000)            
-            
-            message_out = response["message"]
-            if config:
-                message_out += f"\n\Config: {config}"
-            
-            message_in = message.prompt
-            if message.attachments:
-                message_in += f"\n\nAttachments: {message.attachments}"
-
-            user_message = ChatMessage(role="user", content=message_in)
-            assistant_message = ChatMessage(role="assistant", content=message_out)
-
-            output = {
-                "message": response.get("message"),
-                "config": config
-            }
-        
-        # chat
-        elif index == "3":
-            response = self.chat(message.prompt, id=session_id, save_messages=False)
-            
-            user_message = ChatMessage(role="user", content=message.prompt)
-            assistant_message = ChatMessage(role="assistant", content=response)
-
-            output = {
-                "message": response,
-                "config": None
-            }
+        output, user_message, assistant_message = function(
+            message, 
+            session_id=session_id
+        )
 
         self.router.add_messages(user_message, assistant_message, id=session_id)
         self.creator.add_messages(user_message, assistant_message, id=session_id)
@@ -184,5 +232,3 @@ class EdenAssistant:
         self.chat.add_messages(user_message, assistant_message, id=session_id)
 
         return output
-
-

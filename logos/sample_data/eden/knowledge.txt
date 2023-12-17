@@ -326,7 +326,7 @@ const pollForTask = async function(pollingInterval, taskId) {
   let finished = false;
   while (!finished) {
     const taskResult = await eden.tasks.get({taskId: taskId});
-    if (taskResult.task.status == "faled") {
+    if (taskResult.task.status == "failed") {
       throw new Error('Failed')
     }
     else if (taskResult.task.status == "completed") {

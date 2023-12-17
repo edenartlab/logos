@@ -2,24 +2,20 @@ import asyncio
 from logos.scenarios import EdenAssistant
 from logos.sample_data import eden
 
-character_description = eden.get_character_description()
-creator_prompt = eden.get_creator_prompt()
-documentation_prompt = eden.get_documentation_prompt()
-documentation = eden.get_documentation()
-router_prompt = eden.get_router_prompt()
+identity = eden.get_identity()
+knowledge = eden.get_knowledge()
+knowledge_summary = eden.get_knowledge_summary()
 
 eden_assistant = EdenAssistant(
-    character_description, 
-    creator_prompt, 
-    documentation_prompt, 
-    documentation,
-    router_prompt
+    "Eden Assistant", 
+    identity,
+    knowledge_summary,
+    knowledge
 )
-
 
 def test_eden_assistant():
     """
-    Test if the monologue function returns a string
+    Test Eden Assistant
     """
     
     message1 = {
