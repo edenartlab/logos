@@ -212,8 +212,11 @@ class EdenAssistant:
                 self.qa.new_session(id=session_id, model="gpt-4-1106-preview", system=self.qa_prompt, params=self.qa_params)
                 self.chat.new_session(id=session_id, model="gpt-4-1106-preview", system=self.chat_prompt, params=self.chat_params)
         
-        index = self._route_(message, session_id=session_id)
-        function = self.function_map.get(index)
+        if self.router_prompt:
+            index = self._route_(message, session_id=session_id)
+            function = self.function_map.get(index)
+        else:
+            function = self.function_map.get("1")
 
         if not function:     
             return {
